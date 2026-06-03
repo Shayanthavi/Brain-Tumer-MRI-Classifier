@@ -1,0 +1,137 @@
+--- Page 1 ---
+GRAPH-BASED DETECTION, SEGMENTATION &
+CHARACTERIZATION OF BRAIN TUMORS
+A Spatial Prior Approach for Low-
+Grade Gliomas
+--- Page 2 ---
+S a r a h  P a r i s o t
+H u g u e s  D u f f a u
+S t e p h a n e  C h e m o u n y
+N i k o s  P a r a g i o s
+G R O U P  M E M B E R S
+A k s h a y a n  K .
+E G / 2 0 2 1 / 4 3 9 3
+D i s s a n a y a k e  W . M . N . P .
+E G / 2 0 2 1 / 4 4 9 9
+S h a g e e t h p r a t h e e p  V .
+E G / 2 0 2 1 / 4 8 0 9
+S h a y a n t h a v i  T .
+E G / 2 0 2 1 / 4 8 1 1
+A U T H E R S
+--- Page 3 ---
+MOTIVATION & PROBLEM STATEMENT
+Clinical Goal: Early detection and segmentation of Low-Grade Gliomas (LGG).
+The Challenge:
+LGGs have high variability in shape, size,
+and location.
+They often exhibit fuzzy boundaries and
+low contrast against healthy tissue.
+  
+The Gap in Existing Research:
+Existing methods rely on Global Priors
+(standard atlases).
+Limitation: Global priors fail to capture the
+specific, localized deformation patterns of
+tumors.
+--- Page 4 ---
+THE AUTHORS' CORE HYPOTHESIS
+Preferential Locations: The paper builds on the medical finding that LGGs are not
+random; they occur in predictable "preferential locations".
+Proposed Solution:
+Move from a Global Prior to a Localized Sparse Graph.
+By clustering tumors based on spatial proximity, the system can predict where a
+specific subtype of tumor is likely to appear.
+--- Page 5 ---
+METHODOLOGY
+Dataset: 113 manually segmented MRI scans.
+Clustering:
+Unsupervised clustering groups tumors into distinct nodes (classes).
+Result: A graph where each node represents a "type" of tumor location.
+1. GRAPH CONSTRUCTION
+Similarity Metric: The authors calculate the Mahalanobis Distance between
+tumors to measure spatial overlap:
+--- Page 6 ---
+METHODOLOGY
+Classifier: Gentle AdaBoost algorithm.
+Output: A probability map indicating likelihood of tumor presence per voxel.
+2. VISUAL DETECTION (BOOSTING)
+Feature Engineering:
+Intensity: Patch-based statistics to handle inhomogeneity.
+Texture: Gabor features (multiscale).
+Symmetry: A custom feature measuring dissymmetry across the brain's
+midline
+--- Page 7 ---
+EXPERIMENTAL SETUP
+Data: 113 MRI FLAIR images (Low-Grade Gliomas).
+Split: 40 images for training / 73 images for testing.
+Preprocessing:
+Affine registration to a reference atlas.
+Intensity normalization using Median and IQR.
+--- Page 8 ---
+QUANTITATIVE RESULTS
+Key Metric: Dice Score (Segmentation Accuracy).
+Baseline (Boosting only): 48% 
+Standard MRF (Regularization): 65% 
+Proposed Method (With Prior): 74% 
+False Positive Rate:
+Reduced from 45% (baseline) to 24% (proposed method).
+
+--- Page 9 ---
+Successes:
+The method successfully cleans up "noisy" classifications from the
+boosting step.
+Robust to low contrast and fuzzy boundaries common in LGGs.
+False Positive Rate:
+Large Tumors: The prior fails for very large tumors (>200 cubic cm).
+Reason: Large tumors span the spatial domains of multiple clusters,
+confusing the model.
+QUANTITATIVE RESULTS (VISUALS)
+--- Page 10 ---
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+CRITICAL ANALYSIS
+Strengths:
+Novelty: Innovative use of "preferential locations" rather than a generic
+average atlas.
+Integration: Effectively combines machine learning (AdaBoost) with
+geometric priors (Graphs).
+Performance: Significant reduction in false positives (almost 50%
+reduction) 
+--- Page 11 ---
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Quisque non elit mauris. 
+CRITICAL ANALYSIS
+Weaknesses/Critique:
+Dependency: Heavily relies on accurate affine registration to the atlas.
+Scope: Specifically designed for Low-Grade Gliomas; may not
+generalize to other tumor types with random locations (e.g.,
+glioblastomas).
+Complexity: Requires training a complex graph structure;
+computational load is higher than simple thresholding.
+--- Page 12 ---
+CONCLUSION
+Summary: Parisot et al. present a robust framework for joint
+segmentation and characterization.
+Key Takeaway: Incorporating localized spatial knowledge (where tumors
+usually are) significantly aids purely visual detection (what tumors look
+like).
+Future Impact: Potential for monitoring tumor progression or application
+to other organ pathologies.
+--- Page 13 ---
+THANKYOU

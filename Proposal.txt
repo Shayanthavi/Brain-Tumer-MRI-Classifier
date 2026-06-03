@@ -1,0 +1,347 @@
+--- Page 1 ---
+Department of Electrical and Information
+Engineering
+University of Ruhuna
+Mini Project Proposal
+Image Processing and Computer Vision
+EE7204 / EC7205
+Automated Brain Tumor Detection and Classification using
+Deep Learning
+Akshayan K. - EG/2021/4393
+Dissanayake W.M.N.P - EG/2021/4499
+Shageethpratheep V. - EG/2021/4809
+Shayanthavi T. - EG/2021/4811
+23.01.2026
+Department of Electrical and Information Engineering
+University of Ruhuna
+--- Page 2 ---
+Contents
+Contents 1
+1 Problem Statement 2
+2 Objectives 3
+3 Literature Review 4
+3.1 Traditional Machine Learning Approaches . . . . . . . . . . . . . . . . . 4
+3.2 The Rise of Deep Learning and Convolutional Neural Networks (CNNs) . 4
+3.3 Advanced Architectures and Data Augmentation . . . . . . . . . . . . . 5
+3.4 Summary of Recent Reviews . . . . . . . . . . . . . . . . . . . . . . . . . 6
+3.5 Research Gap and Proposed Contribution . . . . . . . . . . . . . . . . . 6
+4 Methodology 8
+4.1 Phase 1: Data Acquisition and Preprocessing . . . . . . . . . . . . . . . . 8
+4.2 Phase 2: Data Augmentation . . . . . . . . . . . . . . . . . . . . . . . . 8
+4.3 Phase 3: Deep Learning Model Architecture . . . . . . . . . . . . . . . . 9
+4.3.1 Approach A: Custom CNN . . . . . . . . . . . . . . . . . . . . . . 9
+4.3.2 Approach B: Transfer Learning (e.g., ResNet50 / VGG16 / Effi-
+cientNet) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+4.4 Phase 4: Training and Evaluation Strategy . . . . . . . . . . . . . . . . . 9
+5 Dataset / Data Collection 11
+6 Expected Outcomes 12
+7 Percentage of Image Processing & Computer Vision Involvement 13
+References 14
+1
+--- Page 3 ---
+1. Problem Statement
+Brain tumors are a serious and life-threatening condition. If doctors can detect them early,
+patients have a better chance of getting the correct treatment and improving survival.
+At present, diagnosis mainly depends on radiologists who manually examine Magnetic
+Resonance Imaging (MRI) scans. This manual process is time-consuming and requires a
+lot of effort, especially when there are many patients and a large number of scans.
+Manual checking can also lead to human error. Different radiologists may some-
+times give different opinions, especially when tumor types look similar, such asGlioma,
+Meningioma, andPituitarytumors. With the rapid growth of medical imaging data, the
+workload on radiologists increases, and this can delay diagnosis.
+Therefore, there is a clear need for an automatedComputer-Aided Diagnosis
+(CAD)system that can support radiologists by providing a fast, consistent, and accurate
+“second opinion.” This project aims to develop a deep learning-based system using
+Convolutional Neural Networks (CNNs)to automatically detect and classify brain
+tumors from MRI images with high precision.
+How to use references using BibTeX files [1–3].
+Back to Table of Contents
+2
+--- Page 4 ---
+2. Objectives
+To design and implement an automated system to detect brain tumors from MRI
+images using image processing techniques.
+To classify detected tumors into types such asGlioma,Meningioma, andPituitary
+using deep learning models likeCNNs.
+To preprocess MRI images using noise removal, skull stripping, and normalization
+to improve model performance.
+To compare different CNN architectures (e.g.,VGG16,ResNet50,EfficientNet)
+using accuracy, precision, and recall.
+To develop a user-friendly tool or interface that can assist medical professionals
+during diagnosis.
+Back to Table of Contents
+3
+--- Page 5 ---
+3. Literature Review
+Brain tumor classification is an important task in medical image analysis because cor-
+rect diagnosis helps doctors choose the best treatment.MRIis widely used because
+it shows soft tissues clearly. However, manual interpretation of MRI scans is slow, and
+results can vary between observers. Because of this, many researchers have developed
+automated systems usingComputer Vision (CV),Machine Learning (ML), and
+Deep Learning (DL).
+This section summarizes important work in the area, starting from traditional machine
+learning methods and moving to modern deep learning approaches.
+3.1. Traditional Machine Learning Approaches
+Early research mainly followed a classical pipeline: preprocessing, manual feature ex-
+traction, and then classification. Many studies used feature extraction methods such as
+Discrete Wavelet Transform (DWT)and texture analysis usingGray Level Co-
+occurrence Matrix (GLCM). After extracting features, classifiers such asSupport
+Vector Machines (SVM)were commonly used. The reference [1] provides strong back-
+ground knowledge for many of these image processing methods. However, seminal work
+by Pereira et al. [4] demonstrated that CNNs could learn these features automatically
+with higher accuracy.
+Although these traditional methods worked reasonably well on small datasets, they
+had limitations. Their performance depended heavily on hand-crafted features and the
+chosen feature set. As a result, they often struggled to generalize to new scans and could
+not easily capture complex tumor patterns. However, recent hybrid approaches have
+successfully combined these traditional features with deep learning, such as the Deep
+Wavelet Auto-Encoder model proposed by [5], which utilizes wavelet functions within a
+neural network architecture.
+3.2. The Rise of Deep Learning and Convolutional Neural Networks (CNNs)
+Deep learning, especiallyCNNs, improved brain tumor classification by learning features
+directly from images. This reduces the need for manual feature engineering and supports
+end-to-end learning.
+Study 1: Simple CNN Architectures
+[6] proposed a simple CNN model to classify tumors intoGlioma,Meningioma, and
+Pituitary. They used around 3064 MRI slices.
+Methodology:A custom CNN was trained from scratch using convolutional layers,
+max pooling, and dense layers.
+Results:High training accuracy was reported, but validation accuracy was lower,
+showing overfitting.
+4
+--- Page 6 ---
+Strengths:Demonstrated that CNNs can learn features automatically and can
+outperform traditional ML methods.
+Limitations:Small datasets can lead to overfitting without enough augmentation
+and regularization.
+Study 2: Transfer Learning and Fine-tuning
+To reduce the small dataset problem, [2] usedTransfer Learningwith pre-trained
+models (e.g., VGG19, AlexNet, ResNet).
+Methodology:They used pre-trained CNNs and applied fine-tuning strategies to
+adapt the model to MRI images.
+Results:Their VGG19-based approach achieved strong accuracy (about 94.82%
+in cross-validation).
+Strengths:Transfer learning improves generalization and training stability for
+small medical datasets.
+Limitations:VGG models are heavy and computationally expensive.
+Study 3: Deep Transfer Learning with GoogLeNet
+[7] exploredGoogLeNetusing Inception modules.
+Methodology:Features were extracted using GoogLeNet and classified using Soft-
+max and other classifiers.
+Results:High classification performance was reported on common datasets.
+Strengths:Inception modules capture features at multiple scales, useful because
+tumors vary in size.
+Limitations:Some hybrid approaches add complexity compared to pure end-to-
+end CNNs.
+3.3. Advanced Architectures and Data Augmentation
+As the field developed, researchers tested advanced models and methods to improve
+performance and reduce common issues such as overfitting and loss of spatial information.
+Study 4: Deep Wavelet Auto-Encoders
+[5] introduced aDeep Wavelet Auto-Encoder (DWAE)model.
+Methodology:Combined an auto-encoder with wavelet activation functions and
+utilized a seed-growing segmentation approach.
+Results:Achieved a high accuracy of 99.3% on BRATS datasets.
+Strengths:Effectively handles noise and heterogeneity in MRI images through its
+specialized filtering and encoding process.
+5
+--- Page 7 ---
+Limitations:Increased model complexity and specialized architecture may require
+more computational resources.
+Study 5: Capsule Networks (CapsNets)
+[3] proposedCapsule Networksto preserve spatial information that can be lost due to
+pooling in CNNs.
+Methodology:They used capsule layers and included tumor boundaries to guide
+learning.
+Results:The CapsNet achieved decent accuracy and improved robustness in some
+cases.
+Strengths:Better at capturing spatial relationships and pose information.
+Limitations:Training can be unstable and computationally expensive.
+Study 6: Data Augmentation Importance
+[8] showed thatData Augmentation(rotation, flipping, zooming) helps reduce overfit-
+ting and improves performance.
+Methodology:They used strong augmentation and fine-tuned a deep CNN.
+Results:Accuracy improved significantly with augmentation compared to no aug-
+mentation.
+Significance:Augmentation is very important for small and imbalanced medical
+datasets.
+3.4. Summary of Recent Reviews
+A review paper by [9] discussed major challenges in brain tumor classification using deep
+learning:
+1.Data Imbalance:Some tumor classes have more images than others.
+2.Explainability:Deep learning models can behave like black boxes, reducing trust.
+3.Generalizability:Models trained on one hospital or scanner may not work well
+on another.
+3.5. Research Gap and Proposed Contribution
+Even though many studies report high accuracy, there are still gaps that our project aims
+to address:
+Gap 1: Computational Efficiency.High-accuracy models like VGG19 [2] are
+heavy. There is a need for efficient architectures likeResNet50andEfficientNet.
+6
+--- Page 8 ---
+Gap 2: End-to-End Simplicity.Complex hybrid pipelines increase implemen-
+tation effort. We aim for a clean and simple end-to-end workflow.
+Gap 3: Reproducibility on Public Data.We will focus on public datasets
+such as Kaggle and BraTS to support reproducibility.
+In this project, we plan to implement a streamlinedTransfer Learningpipeline
+using a modern backbone (such as ResNet50 or EfficientNet). We expect that strong
+preprocessing (including skull stripping) and strong data augmentation can help achieve
+high accuracy while keeping the model more efficient than heavier networks.
+Back to Table of Contents
+7
+--- Page 9 ---
+4. Methodology
+The proposed methodology follows a standard deep learning workflow for medical im-
+age analysis. It is divided into four phases:Data Acquisition & Preprocessing,
+Data Augmentation,Model Architecture & Transfer Learning, andTraining
+& Evaluation.
+4.1. Phase 1: Data Acquisition and Preprocessing
+MRI images can contain noise, artifacts, and non-brain tissues that can reduce model
+performance. Therefore, preprocessing is important.
+1.Dataset Selection:We will use theKaggle Brain Tumor MRI Datasetand
+possibly theBraTSdataset. The dataset includes four classes:Glioma,Menin-
+gioma,Pituitary, andNo Tumor.
+2.Grayscale Conversion & Resizing:MRI images are grayscale, but many pre-
+trained models require a 3-channel input. We will replicate the grayscale channel
+three times. Images will be resized to a fixed size (e.g., 224×224) to match model
+input requirements.
+3.Noise Removal (Denoising):We will reduce noise using filters:
+Gaussian Filter:Helps smooth high-frequency noise.
+Median Filter:Helps remove noise while preserving edges, which is important
+for tumor boundaries. This technique has been shown to improve segmentation
+results in deep learning models, such as the DWAE model implemented by [5].
+4.Skull Stripping (Brain Extraction):Skull and surrounding tissues do not help
+classification. We will use a contour-based method usingOpenCV:
+Apply thresholding to create a binary mask.
+Find the largest contour corresponding to the brain.
+Crop using bounding box or extreme points to remove unwanted regions.
+5.Normalization:We will applyMin-Max Normalizationto scale pixel values
+to [0,1] for stable training and faster convergence.
+4.2. Phase 2: Data Augmentation
+Deep learning models can overfit when data is limited. To reduce overfitting, we will use
+data augmentation during training.
+Random Rotation:±10 to 30 degrees.
+Horizontal Flip:Mirror images to increase variation.
+8
+--- Page 10 ---
+Brightness/Contrast adjustment:Simulate different scanner settings.
+Zoom/Shift:Small zoom and translations to improve robustness.
+4.3. Phase 3: Deep Learning Model Architecture
+We will compare two approaches: a Custom CNN and a Transfer Learning model.
+4.3.1 Approach A: Custom CNN
+We will build a lightweight CNN model inspired by architectures such as the one proposed
+by Badˇ za et al. [10], which showed that simpler networks can be effective for tumor
+classification:
+Convolutional Layersto learn features such as edges, textures, and tumor shapes.
+ReLU Activationto introduce non-linearity.
+Max-Pooling Layersto reduce size and computation.
+Fully Connected Layersfor final classification.
+Dropout(e.g., 50%) to reduce overfitting.
+4.3.2 Approach B: Transfer Learning (e.g., ResNet50 / VGG16 / Efficient-
+Net)
+This will be the main approach because it performs well with small datasets. We will
+utilize powerful backbones such as ResNet50, originally introduced by He et al. [11] and
+EfficientNet [12], which optimizes accuracy and computational efficiency.
+Backbone Feature Extractor:Use a pre-trained model trained on ImageNet.
+Freezing Layers:Freeze early layers at first to keep general feature detectors.
+Custom Head:Add a new head (Global Average Pooling + Dense + Softmax)
+for 4 classes.
+Fine-Tuning:Unfreeze the last blocks and fine-tune with a low learning rate.
+4.4. Phase 4: Training and Evaluation Strategy
+We will implement the system inPythonusingTensorFlow/Keras.
+1. Dataset Split:
+Training Set (70%):Used to train model weights.
+Validation Set (15%):Used to tune hyperparameters and monitor overfitting.
+Test Set (15%):Used for final performance evaluation.
+9
+--- Page 11 ---
+2. Hyperparameters:
+Optimizer:Adam
+Loss Function:Categorical Cross-Entropy
+Batch Size:32 or 64 (depending on GPU memory)
+Epochs:20–50 withEarly Stopping(patience of 5 epochs)
+3. Performance Metrics:
+Accuracy
+Precision
+Recall (Sensitivity)
+F1-Score
+Confusion Matrix
+Tools and Libraries:
+OpenCV (cv2)
+TensorFlow / Keras
+Scikit-Learn
+Matplotlib/Seaborn
+Back to Table of Contents
+10
+--- Page 12 ---
+5. Dataset / Data Collection
+We will use the publicly availableKaggle Brain MRI Datasetand possibly theBraTS
+(Multimodal Brain Tumor Segmentation Challenge)dataset. The Kaggle dataset
+usually contains over 3,000 MRI images categorized into four classes:Glioma,Menin-
+gioma,Pituitary tumor, andNo Tumor. The dataset may include different MRI modali-
+ties such asT1,T2, andFLAIR.
+To ensure good quality, we will preprocess the images to reduce noise, remove un-
+wanted regions, and standardize image size. Ethical use is ensured because these are
+anonymized and open-access datasets intended for research purposes.
+Back to Table of Contents
+11
+--- Page 13 ---
+6. Expected Outcomes
+A working deep learning model that can classify brain MRI images with an accuracy
+above 90%.
+A performance report including Confusion Matrices, Precision, Recall, and F1-
+scores for each tumor class.
+A comparison report showing strengths and weaknesses of different CNN models
+(e.g., ResNet vs VGG vs EfficientNet).
+A demonstration of correct predictions on unseen test images, showing the system’s
+practical usefulness.
+Back to Table of Contents
+12
+--- Page 14 ---
+7. Percentage of Image Processing & Computer Vision Involve-
+ment
+This project is almost 100% based onImage ProcessingandComputer Vision. The
+main workflow includes:
+1.Image Preprocessing:Noise removal using Gaussian/Median filters, skull strip-
+ping, normalization, and possible contrast enhancement.
+2.Feature Extraction & Classification:UsingCNNsandTransfer Learning
+models to learn visual features directly from MRI images.
+There are no external hardware or non-CV components. The entire solution depends on
+analyzing MRI image data.
+Back to Table of Contents
+13
+--- Page 15 ---
+References
+[1] R. C. Gonzalez and R. E. Woods, “Digital image processing,”Prentice Hall, 2008.
+[2] Z. N. K. Swati, Q. Zhao, M. Kabir, F. Ali, Z. Ali, S. Ahmed, and J. Lu, “Brain tumor
+classification for mr images using transfer learning and fine-tuning,”Computerized
+Medical Imaging and Graphics, vol. 75, pp. 34–46, 2019.
+[3] P. Afshar, A. Mohammadi, and K. N. Plataniotis, “Brain tumor type classifica-
+tion using capsule networks,”2018 25th IEEE International Conference on Image
+Processing (ICIP), pp. 3129–3133, 2018.
+[4] S. Pereira, A. Pinto, V. Alves, and C. A. Silva, “Brain tumor segmentation using con-
+volutional neural networks in mri images,”IEEE Transactions on Medical Imaging,
+vol. 35, no. 5, pp. 1240–1251, 2016.
+[5] I. Abd El Kader, G. Xu, Z. Shuai, S. Saminu, I. Javaid, I. S. Ahmad, and S. Kamhi,
+“Brain tumor detection and classification on mr images by a deep wavelet auto-
+encoder model,”Diagnostics, vol. 11, p. 1589, 2021.
+[6] N. Abiwinanda, M. Hanif, S. T. Hesaputra, A. Handayani, and T. R. Mengko, “Brain
+tumor classification using convolutional neural network,” inWorld congress on med-
+ical physics and biomedical engineering 2018, pp. 183–189, Springer, 2019.
+[7] S. Deepak and P. M. Ameer, “Brain tumor classification using deep transfer learn-
+ing,”Computers in Biology and Medicine, vol. 111, p. 103345, 2019.
+[8] M. Sajjad, M. Khan, K. Muhammad, W. Wu, A. Ullah, and S. W. Baik, “Multi-
+grade brain tumor classification using deep cnn with extensive data augmentation,”
+Journal of Computational Science, vol. 30, pp. 174–182, 2019.
+[9] M. A. Khan and et al., “Brain tumor classification using deep learning techniques:
+a review,”IEEE Access, vol. 8, pp. 1–1, 2020.
+[10] M. M. Badza and M. C. Barjaktarovic, “Classification of brain tumors from mri im-
+ages using a convolutional neural network,”Applied Sciences, vol. 10, no. 6, p. 1999,
+2020.
+[11] K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for image recognition,”
+inProceedings of the IEEE conference on computer vision and pattern recognition,
+pp. 770–778, 2016.
+[12] M. Tan and Q. Le, “Efficientnet: Rethinking model scaling for convolutional neural
+networks,” inInternational Conference on Machine Learning, pp. 6105–6114, PMLR,
+2019.
+Back to Table of Contents
+14
