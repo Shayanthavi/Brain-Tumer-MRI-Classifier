@@ -48,80 +48,70 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
     /* Background */
-    .stApp { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+    .stApp { background: #0f172a; color: #f8fafc; }
 
     /* Header */
     .main-header {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: #1e293b;
         padding: 2rem 2.5rem;
-        border-radius: 16px;
+        border-radius: 12px;
         margin-bottom: 2rem;
         text-align: center;
-        box-shadow: 0 8px 32px rgba(102,126,234,0.3);
+        border: 1px solid #334155;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
-    .main-header h1 { color: white; font-size: 2.4rem; font-weight: 700; margin: 0; }
-    .main-header p  { color: rgba(255,255,255,0.85); font-size: 1.1rem; margin: 0.5rem 0 0; }
+    .main-header h1 { color: #f8fafc; font-size: 2.2rem; font-weight: 700; margin: 0; }
+    .main-header p  { color: #94a3b8; font-size: 1.1rem; margin: 0.5rem 0 0; }
 
     /* Cards */
     .card {
-        background: rgba(255,255,255,0.07);
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 14px;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
         padding: 1.5rem;
-        backdrop-filter: blur(10px);
         margin-bottom: 1.2rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        color: #e2e8f0;
     }
 
     /* Metric boxes */
     .metric-box {
-        background: rgba(255,255,255,0.1);
+        background: #1e293b;
         border-radius: 12px;
         padding: 1.2rem;
         text-align: center;
-        border: 1px solid rgba(255,255,255,0.15);
+        border: 1px solid #334155;
     }
-    .metric-label { color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500; margin-bottom: 0.3rem; }
-    .metric-value { color: white; font-size: 1.8rem; font-weight: 700; }
+    .metric-label { color: #94a3b8; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.3rem; }
+    .metric-value { color: #f8fafc; font-size: 1.8rem; font-weight: 700; }
 
     /* Result badges */
-    .result-glioma      { background: linear-gradient(135deg,#ff6b6b,#ff8e53); }
-    .result-meningioma  { background: linear-gradient(135deg,#a18cd1,#fbc2eb); }
-    .result-pituitary   { background: linear-gradient(135deg,#43e97b,#38f9d7); }
-    .result-notumor     { background: linear-gradient(135deg,#4facfe,#00f2fe); }
-    .result-default     { background: linear-gradient(135deg,#667eea,#764ba2); }
+    .result-glioma      { background: #ef4444; color: white; }
+    .result-meningioma  { background: #a855f7; color: white; }
+    .result-pituitary   { background: #3b82f6; color: white; }
+    .result-notumor     { background: #10b981; color: white; }
+    .result-default     { background: #64748b; color: white; }
     .result-badge {
         padding: 1.5rem 2rem;
-        border-radius: 14px;
+        border-radius: 12px;
         text-align: center;
-        color: white;
         font-size: 1.6rem;
         font-weight: 700;
         margin: 1rem 0;
-        letter-spacing: 1px;
-        text-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
     /* Sidebar */
-    .css-1d391kg { background: rgba(15,12,41,0.8) !important; }
+    .css-1d391kg { background: #0f172a !important; }
 
     /* Step labels */
     .step-label {
         text-align: center;
-        color: rgba(255,255,255,0.75);
+        color: #94a3b8;
         font-size: 0.8rem;
-        margin-top: 0.3rem;
+        margin-top: 0.5rem;
         font-weight: 500;
-    }
-
-    /* Disclaimer */
-    .disclaimer {
-        background: rgba(255,200,0,0.1);
-        border: 1px solid rgba(255,200,0,0.3);
-        border-radius: 10px;
-        padding: 0.8rem 1rem;
-        color: rgba(255,220,50,0.9);
-        font-size: 0.85rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -221,7 +211,7 @@ def show_preprocessing_stages(img_bytes: bytes):
         if len(arr_disp.shape) == 3 and arr_disp.shape[2] == 3:
             arr_disp = cv2.cvtColor(arr_disp, cv2.COLOR_BGR2RGB)
 
-        col.image(arr_disp, use_column_width=True)
+        col.image(arr_disp, use_container_width=True)
         col.markdown(f"<div class='step-label'>{label}</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -271,7 +261,7 @@ def predict(model, normalized_img: np.ndarray) -> tuple:
 # ── Probability Chart ──────────────────────────────────────────────────────────
 def plot_probability_chart(probs: np.ndarray) -> go.Figure:
     """Create an interactive Plotly bar chart of class probabilities."""
-    colors = ["#ff6b6b", "#a18cd1", "#4facfe", "#43e97b"]
+    colors = ["#ef4444", "#a855f7", "#10b981", "#3b82f6"]
     labels = [CLASS_DISPLAY[c] for c in CLASS_NAMES]
     values = [float(p) * 100 for p in probs]
 
@@ -331,13 +321,6 @@ def main():
             "This system classifies brain MRI scans using CNNs and "
             "Transfer Learning. For research and educational purposes only."
         )
-        st.markdown("---")
-        st.markdown(
-            "<div class='disclaimer'>⚠️ <b>Medical Disclaimer</b>: "
-            "This tool is for research purposes only. "
-            "Always consult a qualified medical professional for diagnosis.</div>",
-            unsafe_allow_html=True,
-        )
 
     # ── Model Loading ──────────────────────────────────────────────────────────
     with st.spinner(f"Loading {MODEL_DISPLAY[model_key]}…"):
@@ -382,7 +365,7 @@ def main():
     st.markdown("---")
     col_preview, col_info = st.columns([1, 2])
     with col_preview:
-        st.image(img_bytes, caption="Uploaded MRI Image", use_column_width=True)
+        st.image(img_bytes, caption="Uploaded MRI Image", use_container_width=True)
     with col_info:
         st.markdown("### 📋 Image Information")
         import io
