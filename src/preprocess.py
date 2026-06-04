@@ -200,6 +200,17 @@ def skull_strip(img: np.ndarray) -> np.ndarray:
     if w > 0 and h > 0:
         stripped = stripped[y:y + h, x:x + w]
 
+        # Pad to square to preserve aspect ratio
+        diff = abs(w - h)
+        top, bottom, left, right = 0, 0, 0, 0
+        if w > h:
+            top = diff // 2
+            bottom = diff - top
+        else:
+            left = diff // 2
+            right = diff - left
+        stripped = cv2.copyMakeBorder(stripped, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+
     # Resize back to target size
     stripped = resize_image(stripped, IMG_SIZE)
     return stripped

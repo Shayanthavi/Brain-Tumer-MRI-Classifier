@@ -7,39 +7,23 @@ Implements all four models required by the Proposal (Section 4.3):
 
   Model 1 – Custom CNN
     ─ Lightweight architecture inspired by Badzˇa et al. [10]
-    ─ 5 convolutional blocks with increasing filters
-    ─ Double-Conv in blocks 3-5 for richer feature extraction
-    ─ SpatialDropout2D after conv blocks (better than standard dropout
-      for spatial feature maps)
-    ─ Dropout + L2 regularisation in head
+    ─ 4 convolutional blocks with increasing filters
+    ─ Dropout for regularisation
 
   Model 2 – VGG16 Transfer Learning
     ─ ImageNet-pretrained backbone, frozen during Stage 1
-    ─ Last 8 layers unfrozen during Stage 2 fine-tuning
+    ─ Last 4 layers unfrozen during Stage 2 fine-tuning
     ─ Custom classification head (GAP → Dense → Softmax)
-    ─ L2 regularisation on Dense layers
 
   Model 3 – ResNet50 Transfer Learning
     ─ ImageNet-pretrained backbone (He et al. [11])
-    ─ Last residual block (conv5) unfrozen during Stage 2
+    ─ Last residual block unfrozen during Stage 2
     ─ Custom classification head
 
   Model 4 – EfficientNetB0 Transfer Learning
     ─ ImageNet-pretrained backbone (Tan & Le [12])
     ─ Optimised accuracy-vs-efficiency trade-off
     ─ Custom classification head
-
-Bug Fixes Applied:
-  [BUG-5] FIXED: Custom CNN blocks 3-5 now use double-Conv layers.
-          Glioma and Meningioma require fine-grained texture features
-          that single-conv blocks cannot capture. Double-conv provides
-          a larger effective receptive field per block.
-  [BUG-5] FIXED: Added SpatialDropout2D after conv blocks instead of
-          standard Dropout. SpatialDropout2D drops entire feature maps
-          (channels), which is a stronger regularizer for spatial data
-          and prevents co-adaptation of spatially-correlated neurons.
-  [BUG-8] FIXED: Added L2 kernel regularization to all Dense layers
-          in transfer learning model heads to reduce head overfitting.
 
 Conference Paper Relation:
   The Conference Paper (Parisot et al.) uses Gentle AdaBoost with
@@ -65,112 +49,80 @@ INPUT_SHAPE = (IMG_SIZE, IMG_SIZE, 3)
 
 
 def get_preprocess_input(model_name: str):
-    """Return the correct preprocessing function for a model name."""
-    if model_name == "custom_cnn":
-        # Custom CNN receives [0, 1] normalized inputs; identity function.
-        return lambda images: tf.cast(images, tf.float32)
-    if model_name == "vgg16":
-        return lambda images: vgg16_preprocess_input(tf.cast(images, tf.float32))
-    if model_name == "resnet50":
-        return lambda images: resnet50_preprocess_input(tf.cast(images, tf.float32))
-    if model_name == "efficientnet":
-        return lambda images: efficientnet_preprocess_input(tf.cast(images, tf.float32))
-    raise ValueError(f"Unknown model name '{model_name}'")
+  """Return the correct preprocessing function for a model name."""
+  if model_name == "custom_cnn":
+    return lambda images: tf.cast(images, tf.float32) / 255.0
+  if model_name == "vgg16":
+    return lambda images: vgg16_preprocess_input(tf.cast(images, tf.float32))
+  if model_name == "resnet50":
+    return lambda images: resnet50_preprocess_input(tf.cast(images, tf.float32))
+  if model_name == "efficientnet":
+    return lambda images: efficientnet_preprocess_input(tf.cast(images, tf.float32))
+  raise ValueError(f"Unknown model name '{model_name}'")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MODEL 1 – CUSTOM CNN
 # ══════════════════════════════════════════════════════════════════════════════
 def build_custom_cnn(num_classes: int = NUM_CLASSES) -> keras.Model:
     """
-    Build a custom CNN for brain tumour classification.
+    Build a lightweight custom CNN for brain tumour classification.
 
     Architecture:
       INPUT (224×224×3)
        ↓
-      [Conv2D(32, 3×3) → BN → ReLU → MaxPool(2×2)]             → 112×112×32
+      [Conv2D(32, 3×3) → BN → ReLU → MaxPool(2×2)] × 1   → 112×112×32
        ↓
-      [Conv2D(64, 3×3) → BN → ReLU → MaxPool(2×2)]             → 56×56×64
+      [Conv2D(64, 3×3) → BN → ReLU → MaxPool(2×2)] × 1   → 56×56×64
        ↓
-      [Conv2D(128, 3×3) → BN → ReLU → MaxPool(2×2)]            → 28×28×128
+      [Conv2D(128, 3×3) → BN → ReLU → MaxPool(2×2)] × 1  → 28×28×128
        ↓
-      [Conv2D(256, 3×3) → BN → ReLU → MaxPool(2×2)]            → 14×14×256
+      [Conv2D(256, 3×3) → BN → ReLU → MaxPool(2×2)] × 1  → 14×14×256
        ↓
-      [Conv2D(512, 3×3) → BN → ReLU → MaxPool(2×2)]            → 7×7×512
+      GlobalAveragePooling2D                                → 256
        ↓
-      [Conv2D(64, 1×1) → BN → ReLU] (Dimension Reduction)      → 7×7×64
+      Dense(512, ReLU) → Dropout(0.5)                      → 512
        ↓
-      Flatten                                                   → 3136
-       ↓
-      Dense(512, ReLU) → BN → Dropout(0.5)                       → 512
-       ↓
-      Dense(256, ReLU) → BN → Dropout(0.5)                       → 256
-       ↓
-      Dense(num_classes, Softmax)                                 → 4
+      Dense(num_classes, Softmax)                           → 4
 
-    Why single-conv blocks without L2/SpatialDropout:
-      A dataset of ~1600 images (~1120 training) is too small to support
-      an 8-layer deep CNN from scratch. Double-conv blocks and aggressive
-      regularization (L2, SpatialDropout) caused severe underfitting and 
-      destroyed Meningioma recall (dropping from 67% to 32%).
-      
-    Why Flatten over GlobalAveragePooling2D (GAP):
-      GAP destroys spatial location information. Tumors like Pituitary 
-      (center base) and Meningioma (periphery) rely heavily on spatial 
-      location for discrimination. Flatten preserves this information. 
-      To avoid catastrophic parameter explosion (7x7x512 flattened = 25k 
-      features), we use a 1x1 Conv to reduce channels to 64 before flattening.
+    Why included:
+      Provides a baseline comparison. The Proposal explicitly requires
+      a Custom CNN as Approach A (Section 4.3.1). Inspired by Badzˇa
+      et al. [10] who showed that simpler networks can be effective.
+
+    Relation to Conference Paper:
+      Unlike the AdaBoost + hand-crafted features approach, this CNN
+      learns spatial features (edges, textures, tumour shapes) end-to-end.
     """
     inputs = keras.Input(shape=INPUT_SHAPE, name="input")
-    init = "he_normal"
 
-    # ── Block 1 ────────────────────────────────────────────────────────
-    x = layers.Conv2D(32, (3, 3), padding="same", name="conv1", kernel_initializer=init)(inputs)
+    # Block 1
+    x = layers.Conv2D(32, (3, 3), padding="same", name="conv1")(inputs)
     x = layers.BatchNormalization(name="bn1")(x)
     x = layers.Activation("relu", name="relu1")(x)
     x = layers.MaxPooling2D((2, 2), name="pool1")(x)
 
-    # ── Block 2 ────────────────────────────────────────────────────────
-    x = layers.Conv2D(64, (3, 3), padding="same", name="conv2", kernel_initializer=init)(x)
+    # Block 2
+    x = layers.Conv2D(64, (3, 3), padding="same", name="conv2")(x)
     x = layers.BatchNormalization(name="bn2")(x)
     x = layers.Activation("relu", name="relu2")(x)
     x = layers.MaxPooling2D((2, 2), name="pool2")(x)
 
-    # ── Block 3 ────────────────────────────────────────────────────────
-    x = layers.Conv2D(128, (3, 3), padding="same", name="conv3", kernel_initializer=init)(x)
+    # Block 3
+    x = layers.Conv2D(128, (3, 3), padding="same", name="conv3")(x)
     x = layers.BatchNormalization(name="bn3")(x)
     x = layers.Activation("relu", name="relu3")(x)
     x = layers.MaxPooling2D((2, 2), name="pool3")(x)
 
-    # ── Block 4 ────────────────────────────────────────────────────────
-    x = layers.Conv2D(256, (3, 3), padding="same", name="conv4", kernel_initializer=init)(x)
+    # Block 4
+    x = layers.Conv2D(256, (3, 3), padding="same", name="conv4")(x)
     x = layers.BatchNormalization(name="bn4")(x)
     x = layers.Activation("relu", name="relu4")(x)
     x = layers.MaxPooling2D((2, 2), name="pool4")(x)
 
-    # ── Block 5 ────────────────────────────────────────────────────────
-    x = layers.Conv2D(512, (3, 3), padding="same", name="conv5", kernel_initializer=init)(x)
-    x = layers.BatchNormalization(name="bn5")(x)
-    x = layers.Activation("relu", name="relu5")(x)
-    x = layers.MaxPooling2D((2, 2), name="pool5")(x)
-    
-    # ── Dimension Reduction & Flatten ──────────────────────────────────
-    # Reduce 512 channels to 64 using a 1x1 Conv to prevent parameter explosion
-    # 7x7x512 = 25088 features (too many). 7x7x64 = 3136 features (manageable).
-    x = layers.Conv2D(64, (1, 1), padding="same", name="conv_reduce", kernel_initializer=init)(x)
-    x = layers.BatchNormalization(name="bn_reduce")(x)
-    x = layers.Activation("relu", name="relu_reduce")(x)
-    
-    x = layers.Flatten(name="flatten")(x)
-
-    # ── Classification Head ────────────────────────────────────────────
-    x = layers.Dense(512, activation="relu", name="fc1", kernel_initializer=init)(x)
-    x = layers.BatchNormalization(name="bn_fc1")(x)
-    x = layers.Dropout(0.5, name="dropout1")(x)
-
-    x = layers.Dense(256, activation="relu", name="fc2", kernel_initializer=init)(x)
-    x = layers.BatchNormalization(name="bn_fc2")(x)
-    x = layers.Dropout(0.5, name="dropout2")(x)
-
+    # Classification head
+    x = layers.GlobalAveragePooling2D(name="gap")(x)
+    x = layers.Dense(512, activation="relu", name="fc1")(x)
+    x = layers.Dropout(0.5, name="dropout")(x)
     outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
     model = keras.Model(inputs, outputs, name="CustomCNN")
@@ -189,27 +141,24 @@ def build_vgg16(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> kera
        ↓
       GlobalAveragePooling2D
        ↓
-      Dense(512, ReLU) → BatchNorm → Dropout(0.4)
+      Dense(512, ReLU) → BatchNorm → Dropout(0.5)
        ↓
-      Dense(256, ReLU) → BatchNorm → Dropout(0.3)
+      Dense(256, ReLU) → Dropout(0.3)
        ↓
       Dense(num_classes, Softmax)
 
     Fine-tuning strategy (Proposal Section 4.3.2):
       Stage 1: All VGG16 layers frozen. Train head only. LR = 1e-3.
-      Stage 2: Last 8 VGG16 layers unfrozen. Fine-tune. LR = 1e-5.
-              BatchNorm layers in backbone stay frozen to preserve
-              ImageNet statistics (prevents catastrophic forgetting).
-
-    [BUG-8 FIX] Added L2 kernel_regularizer to Dense head layers.
-    Dropout slightly reduced from 0.5→0.4 to prevent over-regularization
-    (too much dropout can prevent the head from learning fine-grained
-    class features like Glioma vs Meningioma textures).
+      Stage 2: Last 4 VGG16 layers unfrozen. Fine-tune. LR = 1e-5.
 
     Why included:
       The Proposal explicitly lists VGG16 as one of the required Transfer
       Learning models (Section 4.3.2). Reference: Swati et al. [2] achieved
       94.82% accuracy with VGG19-based transfer learning.
+
+    Relation to Conference Paper:
+      Replaces AdaBoost's hand-crafted Gabor features with automatically
+      learned hierarchical feature maps via VGG16 convolutions.
     """
     base = VGG16(
         weights="imagenet",
@@ -221,31 +170,19 @@ def build_vgg16(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> kera
     for layer in base.layers:
         layer.trainable = False
 
-    # Stage 2: unfreeze last 8 layers (block4_conv3, block5_conv1/2/3 + pooling)
-    # BatchNorm layers (if any) remain frozen to preserve ImageNet statistics
+    # Stage 2: unfreeze last 4 layers for fine-tuning
     if fine_tune:
-        for layer in base.layers[-8:]:
-            if not isinstance(layer, keras.layers.BatchNormalization):
-                layer.trainable = True
-
-    reg  = keras.regularizers.l2(1e-4)
-    init = "he_normal"
+        for layer in base.layers[-4:]:
+            layer.trainable = True
 
     inputs = keras.Input(shape=INPUT_SHAPE, name="input")
     x = base(inputs, training=False)
     x = layers.GlobalAveragePooling2D(name="gap")(x)
-
-    # [BUG-8 FIX] L2 regularization added to Dense layers
-    x = layers.Dense(512, activation="relu", name="fc1",
-                     kernel_initializer=init, kernel_regularizer=reg)(x)
+    x = layers.Dense(512, activation="relu", name="fc1")(x)
     x = layers.BatchNormalization(name="bn")(x)
-    x = layers.Dropout(0.4, name="dropout1")(x)   # Reduced from 0.5 → 0.4
-
-    x = layers.Dense(256, activation="relu", name="fc2",
-                     kernel_initializer=init, kernel_regularizer=reg)(x)
-    x = layers.BatchNormalization(name="bn2")(x)
+    x = layers.Dropout(0.5, name="dropout1")(x)
+    x = layers.Dense(256, activation="relu", name="fc2")(x)
     x = layers.Dropout(0.3, name="dropout2")(x)
-
     outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
     model = keras.Model(inputs, outputs, name="VGG16_TransferLearning")
@@ -264,24 +201,26 @@ def build_resnet50(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> k
        ↓
       GlobalAveragePooling2D
        ↓
-      Dense(512, ReLU) → BatchNorm → Dropout(0.4)
+      Dense(512, ReLU) → BatchNorm → Dropout(0.5)
        ↓
-      Dense(256, ReLU) → BatchNorm → Dropout(0.3)
+      Dense(256, ReLU) → Dropout(0.3)
        ↓
       Dense(num_classes, Softmax)
 
     Fine-tuning strategy:
       Stage 1: Freeze all ResNet50 layers. Train head. LR = 1e-3.
-      Stage 2: Unfreeze last 33 layers (full conv5 block: conv5_block1/2/3).
-              LR = 1e-5. BatchNorm layers frozen.
-
-    [BUG-8 FIX] Added L2 kernel_regularizer to Dense head layers.
+      Stage 2: Unfreeze last residual block (≈17 layers). LR = 1e-5.
 
     Why included:
       The Proposal explicitly requires ResNet50 (Section 4.3.2, Gap 1).
       ResNet50 introduced residual connections (He et al. [11]) that allow
       training very deep networks without vanishing gradients. More
       computationally efficient than VGG16 with better performance.
+
+    Relation to Conference Paper:
+      ResNet50's residual blocks capture multi-scale spatial features
+      similar in spirit to the multi-scale Gabor features in the paper,
+      but learned end-to-end rather than hand-crafted.
     """
     base = ResNet50(
         weights="imagenet",
@@ -293,30 +232,18 @@ def build_resnet50(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> k
         layer.trainable = False
 
     if fine_tune:
-        # Unfreeze last 33 layers (entire conv5 block: conv5_block1, 2, 3)
-        # Keep BatchNorm frozen to prevent training instability
-        for layer in base.layers[-33:]:
-            if not isinstance(layer, keras.layers.BatchNormalization):
-                layer.trainable = True
-
-    reg  = keras.regularizers.l2(1e-4)
-    init = "he_normal"
+        # Unfreeze last 17 layers (last ResNet block: conv5_block*)
+        for layer in base.layers[-17:]:
+            layer.trainable = True
 
     inputs = keras.Input(shape=INPUT_SHAPE, name="input")
     x = base(inputs, training=False)
     x = layers.GlobalAveragePooling2D(name="gap")(x)
-
-    # [BUG-8 FIX] L2 regularization added
-    x = layers.Dense(512, activation="relu", name="fc1",
-                     kernel_initializer=init, kernel_regularizer=reg)(x)
+    x = layers.Dense(512, activation="relu", name="fc1")(x)
     x = layers.BatchNormalization(name="bn")(x)
-    x = layers.Dropout(0.4, name="dropout1")(x)
-
-    x = layers.Dense(256, activation="relu", name="fc2",
-                     kernel_initializer=init, kernel_regularizer=reg)(x)
-    x = layers.BatchNormalization(name="bn2")(x)
+    x = layers.Dropout(0.5, name="dropout1")(x)
+    x = layers.Dense(256, activation="relu", name="fc2")(x)
     x = layers.Dropout(0.3, name="dropout2")(x)
-
     outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
     model = keras.Model(inputs, outputs, name="ResNet50_TransferLearning")
@@ -335,29 +262,25 @@ def build_efficientnet(num_classes: int = NUM_CLASSES, fine_tune: bool = False) 
        ↓
       GlobalAveragePooling2D
        ↓
-      Dense(512, ReLU) → BatchNorm → Dropout(0.4)
+      Dense(512, ReLU) → BatchNorm → Dropout(0.5)
        ↓
-      Dense(256, ReLU) → BatchNorm → Dropout(0.3)
+      Dense(256, ReLU) → Dropout(0.3)
        ↓
       Dense(num_classes, Softmax)
 
     Fine-tuning strategy:
       Stage 1: Freeze all EfficientNetB0 layers. Train head. LR = 1e-3.
-      Stage 2: Unfreeze last 50 layers (top MBConv blocks). LR = 1e-5.
-              BatchNorm layers frozen.
-
-    Note on EfficientNet preprocessing:
-      EfficientNetB0's preprocess_input scales [0,255] → [-1, 1] internally.
-      The dataset pipeline correctly passes x * 255.0 before calling
-      preprocess_input, so pixels go [0,1] → [0,255] → [-1,1] as expected.
-
-    [BUG-8 FIX] Added L2 kernel_regularizer to Dense head layers.
+      Stage 2: Unfreeze last 20 layers (top blocks). LR = 1e-5.
 
     Why included:
       The Proposal explicitly requires EfficientNet (Section 4.3.2, Gap 1).
       EfficientNet (Tan & Le [12]) optimises model scaling in depth, width,
       and resolution simultaneously. Achieves top accuracy with far fewer
       parameters than VGG16 or ResNet50 → more efficient.
+
+    Relation to Conference Paper:
+      Addresses Gap 1 from the Proposal: "High-accuracy models like VGG19
+      are heavy. There is a need for efficient architectures like EfficientNet."
     """
     base = EfficientNetB0(
         weights="imagenet",
@@ -369,29 +292,17 @@ def build_efficientnet(num_classes: int = NUM_CLASSES, fine_tune: bool = False) 
         layer.trainable = False
 
     if fine_tune:
-        # Unfreeze last 50 layers (top MBConv blocks)
-        for layer in base.layers[-50:]:
-            if not isinstance(layer, keras.layers.BatchNormalization):
-                layer.trainable = True
-
-    reg  = keras.regularizers.l2(1e-4)
-    init = "he_normal"
+        for layer in base.layers[-20:]:
+            layer.trainable = True
 
     inputs = keras.Input(shape=INPUT_SHAPE, name="input")
     x = base(inputs, training=False)
     x = layers.GlobalAveragePooling2D(name="gap")(x)
-
-    # [BUG-8 FIX] L2 regularization added
-    x = layers.Dense(512, activation="relu", name="fc1",
-                     kernel_initializer=init, kernel_regularizer=reg)(x)
+    x = layers.Dense(512, activation="relu", name="fc1")(x)
     x = layers.BatchNormalization(name="bn")(x)
-    x = layers.Dropout(0.4, name="dropout1")(x)
-
-    x = layers.Dense(256, activation="relu", name="fc2",
-                     kernel_initializer=init, kernel_regularizer=reg)(x)
-    x = layers.BatchNormalization(name="bn2")(x)
+    x = layers.Dropout(0.5, name="dropout1")(x)
+    x = layers.Dense(256, activation="relu", name="fc2")(x)
     x = layers.Dropout(0.3, name="dropout2")(x)
-
     outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
     model = keras.Model(inputs, outputs, name="EfficientNetB0_TransferLearning")
@@ -400,15 +311,15 @@ def build_efficientnet(num_classes: int = NUM_CLASSES, fine_tune: bool = False) 
 
 # ── Model Registry ─────────────────────────────────────────────────────────────
 MODEL_BUILDERS = {
-    "custom_cnn":   build_custom_cnn,
-    "vgg16":        build_vgg16,
-    "resnet50":     build_resnet50,
+    "custom_cnn":  build_custom_cnn,
+    "vgg16":       build_vgg16,
+    "resnet50":    build_resnet50,
     "efficientnet": build_efficientnet,
 }
 
 def get_model(name: str, fine_tune: bool = False) -> keras.Model:
     """
-    Return an uncompiled model by name.
+    Return a compiled model by name.
 
     Args:
         name:      One of 'custom_cnn', 'vgg16', 'resnet50', 'efficientnet'.
