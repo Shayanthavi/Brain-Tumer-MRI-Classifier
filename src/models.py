@@ -80,7 +80,7 @@ def get_preprocess_input(model_name: str):
 # ══════════════════════════════════════════════════════════════════════════════
 # MODEL 1 – CUSTOM CNN
 # ══════════════════════════════════════════════════════════════════════════════
-def build_custom_cnn(num_classes: int = NUM_CLASSES) -> keras.Model:
+def build_custom_cnn(num_classes: int = NUM_CLASSES, **kwargs) -> keras.Model:
     """
     Build a custom CNN for brain tumour classification.
 
@@ -101,9 +101,9 @@ def build_custom_cnn(num_classes: int = NUM_CLASSES) -> keras.Model:
        ↓
       Flatten                                                   → 3136
        ↓
-      Dense(512, ReLU) → BN → Dropout(0.5)                       → 512
+      Dense(dense1_units, ReLU) → BN → Dropout(dropout1)         → dense1_units
        ↓
-      Dense(256, ReLU) → BN → Dropout(0.5)                       → 256
+      Dense(dense2_units, ReLU) → BN → Dropout(dropout2)         → dense2_units
        ↓
       Dense(num_classes, Softmax)                                 → 4
 
@@ -163,13 +163,18 @@ def build_custom_cnn(num_classes: int = NUM_CLASSES) -> keras.Model:
     x = layers.Flatten(name="flatten")(x)
 
     # ── Classification Head ────────────────────────────────────────────
-    x = layers.Dense(512, activation="relu", name="fc1", kernel_initializer=init)(x)
-    x = layers.BatchNormalization(name="bn_fc1")(x)
-    x = layers.Dropout(0.5, name="dropout1")(x)
+    dense1 = kwargs.get("dense1_units", 512)
+    dense2 = kwargs.get("dense2_units", 256)
+    drop1 = kwargs.get("dropout1", 0.5)
+    drop2 = kwargs.get("dropout2", 0.5)
 
-    x = layers.Dense(256, activation="relu", name="fc2", kernel_initializer=init)(x)
+    x = layers.Dense(dense1, activation="relu", name="fc1", kernel_initializer=init)(x)
+    x = layers.BatchNormalization(name="bn_fc1")(x)
+    x = layers.Dropout(drop1, name="dropout1")(x)
+
+    x = layers.Dense(dense2, activation="relu", name="fc2", kernel_initializer=init)(x)
     x = layers.BatchNormalization(name="bn_fc2")(x)
-    x = layers.Dropout(0.5, name="dropout2")(x)
+    x = layers.Dropout(drop2, name="dropout2")(x)
 
     outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
@@ -180,7 +185,7 @@ def build_custom_cnn(num_classes: int = NUM_CLASSES) -> keras.Model:
 # ══════════════════════════════════════════════════════════════════════════════
 # MODEL 2 – VGG16 TRANSFER LEARNING
 # ══════════════════════════════════════════════════════════════════════════════
-def build_vgg16(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> keras.Model:
+def build_vgg16(num_classes: int = NUM_CLASSES, fine_tune: bool = False, **kwargs) -> keras.Model:
     """
     Build a VGG16-based transfer learning model.
 
@@ -236,15 +241,20 @@ def build_vgg16(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> kera
     x = layers.GlobalAveragePooling2D(name="gap")(x)
 
     # [BUG-8 FIX] L2 regularization added to Dense layers
-    x = layers.Dense(512, activation="relu", name="fc1",
+    dense1 = kwargs.get("dense1_units", 512)
+    dense2 = kwargs.get("dense2_units", 256)
+    drop1 = kwargs.get("dropout1", 0.4)
+    drop2 = kwargs.get("dropout2", 0.3)
+
+    x = layers.Dense(dense1, activation="relu", name="fc1",
                      kernel_initializer=init, kernel_regularizer=reg)(x)
     x = layers.BatchNormalization(name="bn")(x)
-    x = layers.Dropout(0.4, name="dropout1")(x)   # Reduced from 0.5 → 0.4
+    x = layers.Dropout(drop1, name="dropout1")(x)
 
-    x = layers.Dense(256, activation="relu", name="fc2",
+    x = layers.Dense(dense2, activation="relu", name="fc2",
                      kernel_initializer=init, kernel_regularizer=reg)(x)
     x = layers.BatchNormalization(name="bn2")(x)
-    x = layers.Dropout(0.3, name="dropout2")(x)
+    x = layers.Dropout(drop2, name="dropout2")(x)
 
     outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
@@ -255,7 +265,7 @@ def build_vgg16(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> kera
 # ══════════════════════════════════════════════════════════════════════════════
 # MODEL 3 – RESNET50 TRANSFER LEARNING
 # ══════════════════════════════════════════════════════════════════════════════
-def build_resnet50(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> keras.Model:
+def build_resnet50(num_classes: int = NUM_CLASSES, fine_tune: bool = False, **kwargs) -> keras.Model:
     """
     Build a ResNet50-based transfer learning model.
 
@@ -307,15 +317,20 @@ def build_resnet50(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> k
     x = layers.GlobalAveragePooling2D(name="gap")(x)
 
     # [BUG-8 FIX] L2 regularization added
-    x = layers.Dense(512, activation="relu", name="fc1",
+    dense1 = kwargs.get("dense1_units", 512)
+    dense2 = kwargs.get("dense2_units", 256)
+    drop1 = kwargs.get("dropout1", 0.4)
+    drop2 = kwargs.get("dropout2", 0.3)
+
+    x = layers.Dense(dense1, activation="relu", name="fc1",
                      kernel_initializer=init, kernel_regularizer=reg)(x)
     x = layers.BatchNormalization(name="bn")(x)
-    x = layers.Dropout(0.4, name="dropout1")(x)
+    x = layers.Dropout(drop1, name="dropout1")(x)
 
-    x = layers.Dense(256, activation="relu", name="fc2",
+    x = layers.Dense(dense2, activation="relu", name="fc2",
                      kernel_initializer=init, kernel_regularizer=reg)(x)
     x = layers.BatchNormalization(name="bn2")(x)
-    x = layers.Dropout(0.3, name="dropout2")(x)
+    x = layers.Dropout(drop2, name="dropout2")(x)
 
     outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
@@ -326,7 +341,7 @@ def build_resnet50(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> k
 # ══════════════════════════════════════════════════════════════════════════════
 # MODEL 4 – EFFICIENTNETB0 TRANSFER LEARNING
 # ══════════════════════════════════════════════════════════════════════════════
-def build_efficientnet(num_classes: int = NUM_CLASSES, fine_tune: bool = False) -> keras.Model:
+def build_efficientnet(num_classes: int = NUM_CLASSES, fine_tune: bool = False, **kwargs) -> keras.Model:
     """
     Build an EfficientNetB0-based transfer learning model.
 
@@ -382,15 +397,20 @@ def build_efficientnet(num_classes: int = NUM_CLASSES, fine_tune: bool = False) 
     x = layers.GlobalAveragePooling2D(name="gap")(x)
 
     # [BUG-8 FIX] L2 regularization added
-    x = layers.Dense(512, activation="relu", name="fc1",
+    dense1 = kwargs.get("dense1_units", 512)
+    dense2 = kwargs.get("dense2_units", 256)
+    drop1 = kwargs.get("dropout1", 0.4)
+    drop2 = kwargs.get("dropout2", 0.3)
+
+    x = layers.Dense(dense1, activation="relu", name="fc1",
                      kernel_initializer=init, kernel_regularizer=reg)(x)
     x = layers.BatchNormalization(name="bn")(x)
-    x = layers.Dropout(0.4, name="dropout1")(x)
+    x = layers.Dropout(drop1, name="dropout1")(x)
 
-    x = layers.Dense(256, activation="relu", name="fc2",
+    x = layers.Dense(dense2, activation="relu", name="fc2",
                      kernel_initializer=init, kernel_regularizer=reg)(x)
     x = layers.BatchNormalization(name="bn2")(x)
-    x = layers.Dropout(0.3, name="dropout2")(x)
+    x = layers.Dropout(drop2, name="dropout2")(x)
 
     outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
@@ -406,13 +426,14 @@ MODEL_BUILDERS = {
     "efficientnet": build_efficientnet,
 }
 
-def get_model(name: str, fine_tune: bool = False) -> keras.Model:
+def get_model(name: str, fine_tune: bool = False, **kwargs) -> keras.Model:
     """
     Return an uncompiled model by name.
 
     Args:
         name:      One of 'custom_cnn', 'vgg16', 'resnet50', 'efficientnet'.
         fine_tune: If True, build with Stage-2 layers unfrozen.
+        **kwargs:  Hyperparameters (dense1_units, dense2_units, dropout1, dropout2)
 
     Returns:
         Uncompiled keras.Model.
@@ -420,8 +441,8 @@ def get_model(name: str, fine_tune: bool = False) -> keras.Model:
     if name not in MODEL_BUILDERS:
         raise ValueError(f"Unknown model '{name}'. Choose from {list(MODEL_BUILDERS.keys())}")
     if name == "custom_cnn":
-        return MODEL_BUILDERS[name]()
-    return MODEL_BUILDERS[name](fine_tune=fine_tune)
+        return MODEL_BUILDERS[name](**kwargs)
+    return MODEL_BUILDERS[name](fine_tune=fine_tune, **kwargs)
 
 
 # ── Print Summary ──────────────────────────────────────────────────────────────
