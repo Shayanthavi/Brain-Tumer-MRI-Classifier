@@ -1,3 +1,5 @@
 models/
 *.keras
 __pycache__/
+venv/
+tuning/

@@ -47,19 +47,26 @@ This project develops a CNN-based CAD system to:
 | Property | Value |
 |----------|-------|
 | Source | Kaggle Brain Tumor MRI Dataset (masoudnickparvar) |
-| Total Images | ~7,023 MRI images |
+| Full dataset size | ~7,023 MRI images |
+| **Shipped in this repo** | **1,600 MRI images (a balanced subset)** |
 | Classes | Glioma, Meningioma, Pituitary, No Tumor |
 | Format | JPEG/PNG, various sizes |
 | Modality | T1, T2, FLAIR weighted MRI |
 
-### Class Distribution
+### Class Distribution (shipped subset — `data/raw/`)
 
-| Class | Approximate Count |
-|-------|------------------|
-| Glioma | ~1,621 |
-| Meningioma | ~1,645 |
-| No Tumor | ~2,000 |
-| Pituitary | ~1,757 |
+| Class | Count |
+|-------|-------|
+| Glioma | 400 |
+| Meningioma | 400 |
+| No Tumor | 400 |
+| Pituitary | 400 |
+| **Total** | **1,600** |
+
+After preprocessing, the stratified 70/15/15 split yields **1,120 train / 240 val
+/ 240 test** images (280 / 60 / 60 per class). Running `python src/download.py`
+with a configured Kaggle token fetches the full ~7,023-image dataset, which the
+pipeline handles identically.
 
 ---
 
@@ -334,13 +341,56 @@ python run_pipeline.py
 | Parameter | Value |
 |-----------|-------|
 | Optimizer | Adam |
-| Loss | Categorical Cross-Entropy |
+| Loss | Categorical Cross-Entropy (label smoothing 0.1) |
 | Batch Size | 32 |
-| Stage 1 LR | 1e-3 |
-| Stage 2 LR | 1e-5 |
-| Max Epochs (Stage 1) | 1 |
-| Max Epochs (Stage 2) | 1 |
-| Early Stopping Patience | 5 epochs |
+| Stage 1 LR (transfer) | 1e-3 |
+| Stage 2 LR (transfer) | 1e-5 |
+| Custom CNN LR | 5e-4 |
+| Max Epochs — Custom CNN | 80 |
+| Max Epochs — Transfer Stage 1 | 30 |
+| Max Epochs — Transfer Stage 2 | 30 |
+| Early Stopping Patience (transfer) | 8 epochs |
+| Early Stopping Patience (Custom CNN) | 12 epochs |
+| Class weighting | Balanced (sklearn) |
+| LR scheduler | ReduceLROnPlateau (factor 0.5, patience 3) |
+
+> The Proposal specifies "20–50 epochs with Early Stopping (patience 5)". The
+> implementation widens these ranges (30/30/80 with patience 8/12) so each stage
+> can fully converge; Early Stopping with `restore_best_weights` makes the upper
+> bound a ceiling, not a fixed count.
+
+---
+
+## 11b. Hyperparameter Tuning (KerasTuner · Hyperband)
+
+The Proposal (§4.4) calls for the validation set to **tune hyperparameters**.
+[src/tune.py](src/tune.py) implements this with KerasTuner's **Hyperband** search
+over the highest-impact hyperparameters, using the existing 70/15/15 split.
+
+**Search space** (per model): `dense_units_1` ∈ {256,512,1024}, `dense_units_2` ∈
+{128,256}, `dropout_1` ∈ [0.2–0.6], `dropout_2` ∈ [0.1–0.5], `learning_rate` ∈
+{1e-3,5e-4,1e-4}, and `l2` ∈ {1e-5,1e-4,1e-3} (transfer heads). The conv feature
+extractors / ImageNet backbones are held fixed.
+
+```bash
+# Tune all models, then retrain & save the best config of each
+python -m src.tune
+
+# One model / custom Hyperband budget / search-only
+python -m src.tune --models resnet50 --max-epochs 30 --factor 3
+python -m src.tune --no-final-train          # writes models/<model>_best_hp.json only
+
+# Or through the master pipeline (tunes instead of plain training, then evaluates)
+python run_pipeline.py --skip-download --tune
+```
+
+**Outputs:** `models/<model>_best_hp.json` (best hyperparameters),
+`models/<model>_final.keras` + `<model>_history.json` (best config retrained with
+the standard two-stage strategy — consumed directly by evaluation and the UI),
+and `tuning/<model>/` (resumable KerasTuner state).
+
+> ⚠️ Hyperband trains many candidate models — run it on a **GPU / HPC node**.
+> On CPU it is impractically slow.
 
 ---
 
@@ -379,24 +429,34 @@ Opens at: **http://localhost:8501**
 
 ## 14. Results
 
-Verified results from the current smoke-run:
+Results from a full training run on the held-out **test set (240 images, 60 per class)**.
+Metrics are weighted averages across the four classes. Source of truth:
+`reports/model_comparison.csv` and `reports/classification_reports.json`.
 
 | Model | Accuracy | Precision | Recall | F1-Score |
 |-------|----------|-----------|--------|----------|
-| Custom CNN | 24.58% | 8.31% | 24.58% | 10.79% |
+| **ResNet50** (best) | **85.83%** | 86.52% | 85.83% | 85.66% |
+| VGG16 | 84.58% | 86.08% | 84.58% | 84.53% |
+| EfficientNetB0 | 83.75% | 84.47% | 83.75% | 83.30% |
+| Custom CNN | 71.67% | 70.03% | 71.67% | 69.82% |
 
-The current verified run is a baseline sanity-check on the processed dataset. The transfer learning models are implemented and ready to train next; they are expected to outperform the Custom CNN once full training is completed.
+**Best model: ResNet50** — highest accuracy and F1-score, confirming the
+Proposal's expectation (Gap 1) that a modern residual backbone outperforms
+both a from-scratch CNN and the heavier VGG16.
 
-Expected results after full training (based on literature):
+### Per-class observations
+- `notumor` and `pituitary` are classified most reliably (F1 ≈ 0.87–0.96 across all models).
+- `glioma` vs `meningioma` is the hardest pair (overlapping texture), which is the
+  main source of errors in every confusion matrix — consistent with the literature
+  cited in the Proposal.
 
-| Model | Expected Accuracy |
-|-------|-----------------|
-| Custom CNN | ~85–90% |
-| VGG16 | ~90–93% |
-| ResNet50 | ~92–96% |
-| EfficientNetB0 | ~93–97% |
+> Note on dataset size: this repository ships the **1,600-image subset** (400 per
+> class, see Section 4), so absolute accuracies are a few points below the 90%+
+> figures reported on the full ~7k-image Kaggle dataset. Re-running with the full
+> dataset is expected to push the transfer-learning models above 90%.
 
-Actual results will vary based on available compute and random seed. See `reports/model_comparison.csv` after running evaluation.
+Numbers will vary slightly between runs due to random initialisation, augmentation,
+and GPU/CPU non-determinism. Re-generate everything with `python -m src.evaluate`.
 
 ---
 

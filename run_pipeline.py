@@ -29,6 +29,13 @@ parser.add_argument("--skip-train",       action="store_true", help="Skip traini
 parser.add_argument("--skip-evaluate",    action="store_true", help="Skip evaluation")
 parser.add_argument("--force-download",   action="store_true", help="Force re-download")
 parser.add_argument("--force-preprocess", action="store_true", help="Force re-preprocessing")
+parser.add_argument("--tune",             action="store_true",
+                    help="Run KerasTuner Hyperband hyperparameter search instead of plain "
+                         "training. Produces models/*_best_hp.json and tuned models/*_final.keras.")
+parser.add_argument("--tune-max-epochs",  type=int, default=30,
+                    help="Hyperband max epochs per candidate (with --tune)")
+parser.add_argument("--tune-factor",      type=int, default=3,
+                    help="Hyperband reduction factor (with --tune)")
 parser.add_argument(
     "--models",
     nargs="+",
@@ -74,8 +81,21 @@ if not args.skip_preprocess:
 else:
     print("[SKIP] Preprocessing phase skipped.")
 
-# ── PHASE 8: Train ─────────────────────────────────────────────────────────────
-if not args.skip_train:
+# ── PHASE 8: Train (or PHASE 8b: Hyperparameter Tuning) ──────────────────────────
+if args.tune:
+    print("\n" + "─" * 55)
+    print(f" PHASE 8b: HYPERPARAMETER TUNING (Hyperband) – {args.models}")
+    print("─" * 55)
+    from src.tune import tune_all
+    # Tuning performs its own final training, producing the same model artefacts
+    # (models/{model}_final.keras + history) that evaluation consumes.
+    tune_all(
+        args.models,
+        max_epochs=args.tune_max_epochs,
+        factor=args.tune_factor,
+        final_train=True,
+    )
+elif not args.skip_train:
     print("\n" + "─" * 55)
     print(f" PHASE 8: TRAINING – {args.models}")
     print("─" * 55)

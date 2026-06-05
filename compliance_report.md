@@ -13,12 +13,12 @@
 | 7 | Median Filter (noise removal) | `apply_median_filter()` kernel 3×3 | `src/preprocess.py` L116–136 | ✅ Complete |
 | 8 | Skull Stripping via contour-based OpenCV method | `skull_strip()`: Otsu threshold → largest contour → mask → crop | `src/preprocess.py` L139–198 | ✅ Complete |
 | 9 | Min-Max Normalization to [0,1] | `normalize_image()` | `src/preprocess.py` L201–222 | ✅ Complete |
-| 10 | Random Rotation augmentation (±10–30°) | `RandomRotation(factor=0.085)` ≈ ±30° | `src/augment.py` L88 | ✅ Complete |
-| 11 | Horizontal Flip augmentation | `RandomFlip(mode="horizontal")` | `src/augment.py` L93 | ✅ Complete |
-| 12 | Brightness adjustment augmentation | `RandomBrightness(factor=0.30)` | `src/augment.py` L108 | ✅ Complete |
-| 13 | Contrast adjustment augmentation | `RandomContrast(factor=0.30)` | `src/augment.py` L113 | ✅ Complete |
-| 14 | Zoom augmentation | `RandomZoom(height_factor=0.15)` | `src/augment.py` L98 | ✅ Complete |
-| 15 | Shift augmentation | `RandomTranslation(height_factor=0.10)` | `src/augment.py` L103 | ✅ Complete |
+| 10 | Random Rotation augmentation (±10–30°) | `RandomRotation(factor=0.042)` ≈ ±15° (tuned down to preserve orientation cues) | `src/augment.py` | ✅ Complete |
+| 11 | Horizontal Flip augmentation | `RandomFlip(mode="horizontal")` | `src/augment.py` | ✅ Complete |
+| 12 | Brightness adjustment augmentation | `RandomBrightness(factor=0.20)` | `src/augment.py` | ✅ Complete |
+| 13 | Contrast adjustment augmentation | `RandomContrast(factor=0.20)` (range 0.80–1.20) | `src/augment.py` | ✅ Complete |
+| 14 | Zoom augmentation | `RandomZoom(height_factor=0.12)` | `src/augment.py` | ✅ Complete |
+| 15 | Shift augmentation | `RandomTranslation(height_factor=0.10)` | `src/augment.py` | ✅ Complete |
 | 16 | Custom CNN (Approach A) | 4 Conv blocks + GAP + Dense + Dropout + Softmax | `src/models.py` → `build_custom_cnn()` | ✅ Complete |
 | 17 | VGG16 Transfer Learning (Approach B) | ImageNet VGG16 + custom head, 2-stage training | `src/models.py` → `build_vgg16()` | ✅ Complete |
 | 18 | ResNet50 Transfer Learning | ImageNet ResNet50 + custom head, 2-stage training | `src/models.py` → `build_resnet50()` | ✅ Complete |
@@ -26,15 +26,15 @@
 | 20 | Training Split: 70% Train | `train_test_split(train_size=0.70, stratify=labels)` | `src/preprocess.py` L232–238 | ✅ Complete |
 | 21 | Validation Split: 15% Val | Second split: 50% of remaining 30% | `src/preprocess.py` L240–245 | ✅ Complete |
 | 22 | Test Split: 15% Test | Remaining 50% of the 30% holdout | `src/preprocess.py` L240–245 | ✅ Complete |
-| 23 | Adam Optimizer | `keras.optimizers.Adam(lr=1e-3 / 1e-5)` | `src/train.py` L114, L136 | ✅ Complete |
-| 24 | Categorical Cross-Entropy loss | `loss="categorical_crossentropy"` | `src/train.py` L115, L137 | ✅ Complete |
-| 25 | Batch Size 32 or 64 | `BATCH_SIZE = 32` (adjustable constant) | `src/train.py` L33 | ✅ Complete |
-| 26 | Epochs 20–50 with Early Stopping | Stage 1: 20 epochs, Stage 2: 30 epochs, max 50 total | `src/train.py` L34–36 | ✅ Complete |
-| 27 | Early Stopping (patience=5) | `EarlyStopping(patience=5, restore_best_weights=True)` | `src/train.py` L79–85 | ✅ Complete |
-| 28 | Accuracy metric | `accuracy_score()` from sklearn | `src/evaluate.py` L113 | ✅ Complete |
-| 29 | Precision metric | `precision_score(average="weighted")` | `src/evaluate.py` L114 | ✅ Complete |
-| 30 | Recall (Sensitivity) metric | `recall_score(average="weighted")` | `src/evaluate.py` L115 | ✅ Complete |
-| 31 | F1-Score metric | `f1_score(average="weighted")` | `src/evaluate.py` L116 | ✅ Complete |
+| 23 | Adam Optimizer | `keras.optimizers.Adam(lr=1e-3 / 1e-5 / 5e-4)` | `src/train.py` | ✅ Complete |
+| 24 | Categorical Cross-Entropy loss | `CategoricalCrossentropy(label_smoothing=0.1)` | `src/train.py` | ✅ Complete |
+| 25 | Batch Size 32 or 64 | `BATCH_SIZE = 32` (adjustable constant) | `src/train.py` | ✅ Complete |
+| 26 | Epochs 20–50 with Early Stopping | Transfer: Stage 1 = 30, Stage 2 = 30; Custom CNN = 80 (all capped by Early Stopping) | `src/train.py` | ✅ Complete |
+| 27 | Early Stopping | `EarlyStopping(patience=8 transfer / 12 CNN, restore_best_weights=True)` | `src/train.py` | ✅ Complete |
+| 28 | Accuracy metric | `accuracy_score()` from sklearn | `src/evaluate.py` | ✅ Complete |
+| 29 | Precision metric | `precision_score(average="weighted")` | `src/evaluate.py` | ✅ Complete |
+| 30 | Recall (Sensitivity) metric | `recall_score(average="weighted")` | `src/evaluate.py` | ✅ Complete |
+| 31 | F1-Score metric | `f1_score(average="weighted")` | `src/evaluate.py` | ✅ Complete |
 | 32 | Confusion Matrix | `confusion_matrix()` + Seaborn heatmap | `src/evaluate.py` → `_plot_confusion_matrix()` | ✅ Complete |
 | 33 | Model comparison report | CSV + PNG bar chart comparing all 4 models | `src/evaluate.py` → `_plot_comparison()` | ✅ Complete |
 | 34 | User-friendly diagnostic interface | Streamlit web app | `src/app.py` | ✅ Complete |
