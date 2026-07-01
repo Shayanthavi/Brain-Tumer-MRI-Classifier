@@ -1,0 +1,418 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Packages ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2cm]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{hyperref}
+
+% ---------- Colours ----------
+\definecolor{navy}{HTML}{1F3A5F}
+\definecolor{accent}{HTML}{2E6DB4}
+\definecolor{lightgray}{HTML}{F2F4F7}
+\definecolor{codebg}{HTML}{F6F8FA}
+\definecolor{ok}{HTML}{1B7F3B}
+
+\hypersetup{colorlinks=true, linkcolor=accent, urlcolor=accent, citecolor=accent,
+  pdftitle={Evaluation Preparation Guide}, pdfauthor={Group 03}}
+
+% ---------- Headings ----------
+\titleformat{\section}{\color{navy}\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\color{accent}\large\bfseries}{\thesubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{14pt}{6pt}
+
+% ---------- Header / footer ----------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\lhead{\small\color{navy}Brain Tumor MRI Classifier}
+\rhead{\small\color{navy}Viva Preparation}
+\cfoot{\small\thepage}
+
+% ---------- Code style ----------
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single, rulecolor=\color{lightgray},
+  breaklines=true, columns=fullflexible,
+  keepspaces=true, showstringspaces=false,
+  xleftmargin=6pt, framexleftmargin=6pt,
+}
+
+% ---------- Boxes ----------
+\newtcolorbox{keybox}[1][]{colback=lightgray,colframe=accent,boxrule=0.6pt,
+  arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,#1}
+\newtcolorbox{qabox}[1][]{colback=white,colframe=navy,boxrule=0.6pt,
+  arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,#1}
+
+\newcommand{\code}[1]{\colorbox{codebg}{\small\texttt{#1}}}
+\newcommand{\Q}[1]{\textbf{\color{navy}Q: #1}\\}
+\newcommand{\A}[1]{\textbf{\color{ok}A:} #1}
+
+\renewcommand{\arraystretch}{1.25}
+
+% Absorb long unbreakable typewriter tokens (filenames / identifiers) gracefully
+\emergencystretch=3em
+\hbadness=3000
+\tolerance=1200
+
+% ====================================================================
+\begin{document}
+
+% ---------- Title ----------
+\begin{titlepage}
+\centering
+\vspace*{2.5cm}
+{\color{navy}\Huge\bfseries Evaluation / Viva\\[4pt] Preparation Guide\par}
+\vspace{0.8cm}
+{\large Automated Brain Tumor Detection \& Classification\par}
+{\large using Deep Learning\par}
+\vspace{0.5cm}
+{\color{accent}\large EE7204 / EC7205 — Image Processing \& Computer Vision\par}
+\vspace{1.2cm}
+\rule{0.6\textwidth}{0.8pt}\\[6pt]
+{\itshape Detection \& Classification only (no segmentation)}\\[4pt]
+{\itshape University of Ruhuna — Group 03}\\
+\vspace{1.5cm}
+
+\begin{keybox}[width=0.85\textwidth]
+\centering\bfseries This guide addresses the five evaluation criteria:\\[4pt]
+\begin{flushleft}\normalfont
+1. You can explain \textbf{every line} of code.\\
+2. \textbf{Every member} can explain the \textbf{whole pipeline}.\\
+3. \textbf{Proper validation} is demonstrated.\\
+4. \textbf{Results} are clearly stated.\\
+5. \textbf{No AI-generated images/slides} — build slides from the real \texttt{reports/} outputs.
+\end{flushleft}
+\end{keybox}
+
+\vfill
+{\small Study Part A (everyone) $\rightarrow$ own one Part~B section (per member) $\rightarrow$ drill Part~F together.}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ====================================================================
+\section{The 60-second and 3-minute story (everyone memorises this)}
+
+\begin{keybox}
+\textbf{60-second pitch:} ``We built a Computer-Aided Diagnosis system that classifies a
+brain MRI into one of four classes --- \emph{glioma, meningioma, pituitary, no-tumor}.
+The image is preprocessed with OpenCV (grayscale, denoising, skull stripping,
+normalization), then classified by a CNN. We compare a from-scratch Custom CNN against
+three transfer-learning backbones (VGG16, ResNet50, EfficientNetB0). The best model is
+\textbf{ResNet50 at 85.8\% test accuracy}. A Streamlit app lets a user upload a scan and
+get a prediction with a confidence score.''
+\end{keybox}
+
+\subsection*{The data journey (one sentence per stage)}
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Acquire} --- Kaggle Brain Tumor MRI dataset (\code{src/download.py}).
+  \item \textbf{Preprocess} --- load $\rightarrow$ grayscale\,$\to$\,3-channel $\rightarrow$ resize $224\times224$ $\rightarrow$ Gaussian filter $\rightarrow$ median filter $\rightarrow$ skull strip $\rightarrow$ min--max normalize (\code{src/preprocess.py}).
+  \item \textbf{Split} --- stratified 70\% train / 15\% val / 15\% test.
+  \item \textbf{Augment} --- rotation/flip/zoom/shift/brightness/contrast, \emph{training only} (\code{src/augment.py}).
+  \item \textbf{Model} --- Custom CNN + 3 transfer backbones with a custom head (\code{src/models.py}).
+  \item \textbf{Train} --- Adam + categorical cross-entropy, class weights, early stopping; transfer models use a \textbf{2-stage} schedule (\code{src/train.py}).
+  \item \textbf{Tune (optional)} --- KerasTuner Hyperband over head width / dropout / LR / L2 (\code{src/tune.py}).
+  \item \textbf{Evaluate} --- accuracy/precision/recall/F1 + confusion matrix on the \textbf{held-out test set} (\code{src/evaluate.py}).
+  \item \textbf{Deploy} --- Streamlit UI (\code{src/app.py}).
+\end{enumerate}
+
+% ====================================================================
+\section{File-by-file deep dive (split across members)}
+
+\subsection{src/download.py --- Data acquisition}
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item Uses the \textbf{Kaggle API}: \texttt{authenticate()} then \texttt{dataset\_download\_files(..., unzip=True)}.
+  \item Organises the download into \texttt{data/raw/\{glioma, meningioma, pituitary, notumor\}}; \texttt{verify\_dataset()} checks all 4 folders exist.
+  \item \textbf{Why a constant dataset id?} reproducibility --- one canonical public source (Proposal Gap~3).
+  \item \textbf{Talking point:} the repo ships a \textbf{1{,}600-image balanced subset} (400/class); the full set is $\sim$7{,}023.
+\end{itemize}
+
+\subsection{src/preprocess.py --- Image processing (the most ``CV'' file --- know it cold)}
+Pipeline order: \textbf{load $\to$ gray3 $\to$ resize $\to$ Gaussian $\to$ median $\to$ skull-strip $\to$ normalize.}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+\textbf{Function} & \textbf{Key call} & \textbf{What \& why} \\
+\midrule
+\code{load\_image} & \code{cv2.imread} & reads \textbf{BGR uint8}; raises if \code{None} (corrupt/missing). \\
+\code{to\_grayscale\_rgb} & \code{cvtColor}+\code{merge} & MRI is 1-channel; ImageNet nets need \textbf{3 channels} --- replicate (no false colour). \\
+\code{resize\_image} & \code{resize(INTER\_AREA)} & 224 is the ImageNet size; \textbf{INTER\_AREA} is best for \textbf{downscaling}. \\
+\code{apply\_gaussian\_filter} & \code{GaussianBlur(3,3)} & smooths \textbf{high-frequency/Gaussian} noise; \code{sigmaX=0} $\Rightarrow$ $\sigma$ from kernel. \\
+\code{apply\_median\_filter} & \code{medianBlur(3)} & removes \textbf{impulse} noise while \textbf{preserving edges} (tumor boundaries). \\
+\code{skull\_strip} & (see below) & removes skull/background so the CNN focuses on brain tissue. \\
+\code{normalize\_image} & \code{(x-min)/(max-min)} & \textbf{min--max} to $[0,1]$ for stable gradients; guards divide-by-zero. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{keybox}
+\textbf{\code{skull\_strip()} step by step (examiners love this):}
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+  \item \code{threshold(BINARY+OTSU)} --- \textbf{Otsu} auto-picks the brain/background threshold.
+  \item \code{morphologyEx(MORPH\_CLOSE, ellipse 7x7, iters=3)} --- closing (dilate then erode) fills holes in the mask.
+  \item \code{findContours(RETR\_EXTERNAL, CHAIN\_APPROX\_SIMPLE)} --- outer contours; store only corner points.
+  \item \code{max(contours, key=contourArea)} --- the \textbf{largest contour = the brain}.
+  \item \code{drawContours(FILLED)} + \code{bitwise\_and} --- keep brain pixels, zero the rest.
+  \item \code{boundingRect}+crop, then \code{copyMakeBorder} to \textbf{pad to square}, then resize to 224.
+  \item If no contour found $\rightarrow$ return resized original (never crashes).
+\end{enumerate}
+\end{keybox}
+
+\noindent\textbf{\code{prepare\_dataset()}:} collects from \code{Training/} \emph{and} \code{Testing/} (we re-split ourselves); two
+\code{train\_test\_split} calls with \code{stratify=} and \code{random\_state=42} $\Rightarrow$ \textbf{70/15/15}, class
+proportions preserved, reproducible. Saves processed images as \textbf{lossless PNG} (JPEG would re-add artefacts).
+
+\subsection{src/augment.py --- Data augmentation}
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item A \code{keras.Sequential} of random layers, applied \textbf{only with \code{training=True}} (val/test untouched).
+  \item Values (tuned \emph{down} from defaults): rotation $\pm15^\circ$ (\code{factor=0.042}), horizontal flip, zoom $\pm12\%$, shift $\pm10\%$, brightness $\pm20\%$, contrast 0.8--1.2.
+  \item \textbf{Why augment?} small dataset $\rightarrow$ synthesise plausible variants $\rightarrow$ less overfitting.
+  \item \textbf{Why tuned down?} aggressive rotation/zoom destroys the subtle cues separating glioma vs meningioma.
+\end{itemize}
+
+\subsection{src/models.py --- Architectures}
+\textbf{\code{get\_preprocess\_input(name)}} returns the correct preprocessing per backbone: identity for the Custom
+CNN ($[0,1]$); \code{vgg16/resnet50/efficientnet.preprocess\_input} for the others (they expect $[0,255]$ and do
+their own scaling) --- this is why \code{train.py} rescales \code{x*255} first.
+
+\begin{keybox}
+\textbf{Custom CNN:} 5 conv blocks $32\to64\to128\to256\to512$ (each \code{Conv(3x3)$\to$BN$\to$ReLU$\to$MaxPool}),
+then a $1\times1$ conv reducing $512\to64$, \code{Flatten}, \code{Dense512$\to$BN$\to$Dropout0.5},
+\code{Dense256$\to$BN$\to$Dropout0.5}, \code{Dense4 softmax}. $\sim$3.35M params.
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{Flatten not GAP?} GAP discards \emph{spatial location}; pituitary (centre-base) vs meningioma (periphery) depend on location.
+  \item \textbf{Why $1\times1$ conv first?} $7{\times}7{\times}512=25{,}088$ flattened would explode the Dense layer; reduce to $7{\times}7{\times}64=3{,}136$.
+  \item \textbf{Single (not double) conv per block?} $\sim$1{,}120 training images can't support a deeper net (double-conv underfit).
+\end{itemize}
+\end{keybox}
+
+\noindent\textbf{Transfer models:} \texttt{Backbone(include\_top=False, weights='imagenet')} $\to$ \texttt{GlobalAveragePooling2D}
+$\to$ \texttt{Dense512 (L2=1e-4)} $\to$ BN $\to$ Dropout 0.4 $\to$ \texttt{Dense256} $\to$ BN $\to$ Dropout 0.3 $\to$ \texttt{Dense4 softmax}.
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{Stage 1:} every backbone layer \code{trainable=False} (only the head learns).
+  \item \textbf{Stage 2 (\code{fine\_tune=True}):} unfreeze the last \textbf{8 / 33 / 50} layers (VGG16/ResNet50/EfficientNet), \textbf{except BatchNorm} (keep ImageNet statistics).
+  \item \code{base(inputs, training=False)} keeps backbone BN in inference mode during head training.
+\end{itemize}
+
+\subsection{src/train.py --- Training (know the 2-stage logic)}
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \texttt{\_make\_dataset}: \texttt{image\_dataset\_from\_directory} with a \textbf{fixed \texttt{class\_names} order}
+        (glioma, meningioma, notumor, pituitary) so label indices are identical in train/eval/app --- critical.
+        Pipeline: \texttt{/255} $\to$ (train) augment $\to$ \texttt{clip(0,1)} $\to$ (transfer) \texttt{preprocess\_fn(x*255)} $\to$ prefetch.
+        \emph{Why clip?} \texttt{RandomBrightness} can exceed $[0,1]$.
+  \item \texttt{\_compute\_class\_weights}: sklearn \texttt{'balanced'} --- rarer classes weighted higher (robust on the full imbalanced set).
+  \item \textbf{Callbacks}: \texttt{EarlyStopping} (monitors val\_loss, \texttt{restore\_best\_weights}), \texttt{ModelCheckpoint},
+        \texttt{ReduceLROnPlateau} ($\times0.5$, patience 3), and \texttt{TensorBoard}.
+  \item \textbf{Stage 1}: \code{Adam}, loss \code{CategoricalCrossentropy(label\_smoothing=0.1)}, with class weights
+        (Custom CNN: lr 5e-4, $\le$80 ep; transfer: lr 1e-3, $\le$30 ep).
+  \item \textbf{Stage 2} (transfer): \code{load\_model(stage1\_best)} $\to$ unfreeze top layers $\to$ recompile \code{Adam(1e-5)} $\to$ fit $\le$30.
+  \item \textbf{Safety check}: if Stage-1 val\_loss was lower, it \textbf{reverts} to the Stage-1 model.
+\end{itemize}
+
+\subsection{src/tune.py --- Hyperparameter tuning (KerasTuner Hyperband)}
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item Searches head width (256/512/1024, 128/256), dropout (0.2--0.6 / 0.1--0.5), learning rate (1e-3/5e-4/1e-4), L2 (1e-5/1e-4/1e-3). The conv/backbone is fixed.
+  \item \textbf{Hyperband} = run many configs briefly, keep winners, give them more epochs (a tournament) --- far cheaper than grid search.
+  \item Optimises \textbf{\code{val\_accuracy} on the validation split} --- exactly the Proposal's ``use validation to tune hyperparameters.''
+  \item Retrains the best config with the same 2-stage strategy, saving the standard artefacts so evaluation/UI use it unchanged.
+\end{itemize}
+
+\subsection{src/evaluate.py --- Metrics \& plots}
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item Loads the test set with \texttt{shuffle=False} (predictions align with labels), then \texttt{predict} and \texttt{argmax}.
+  \item sklearn metrics: weighted \texttt{accuracy}, \texttt{precision}, \texttt{recall}, \texttt{f1\_score}, plus \texttt{classification\_report} and \texttt{confusion\_matrix}.
+  \item Saves confusion matrices, training curves (stage1+stage2, with a Stage-2 marker), \texttt{model\_comparison.png/csv}, and \texttt{classification\_reports.json}.
+\end{itemize}
+
+\subsection{src/app.py --- Streamlit UI}
+Loads a cached model, uploads an image, shows the \textbf{6 preprocessing stages}, applies the \emph{same}
+preprocessing as training, and shows class + confidence + a per-class bar chart --- proving the model works on a
+single unseen image (Proposal: ``demonstration on unseen test images'').
+
+% ====================================================================
+\section{Proper validation (criterion 3 --- say this explicitly)}
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Data split} --- stratified \textbf{70/15/15} (\code{random\_state=42}). Test set is \textbf{held out} and used \emph{only once}; validation drives early stopping / LR / tuning. No test leakage.
+  \item \textbf{Generalisation guards} --- augmentation, Dropout (0.3--0.5), L2 (1e-4), BatchNorm, label smoothing (0.1), \textbf{EarlyStopping with restore\_best\_weights}.
+  \item \textbf{Class imbalance} --- balanced class weights (robust on the full dataset).
+  \item \textbf{Fair comparison} --- all 4 models share the same split, preprocessing, augmentation, and head $\Rightarrow$ differences are due to the \textbf{backbone}.
+  \item \textbf{Multi-model cross-check} --- all 4 models show the \emph{same} error pattern (glioma\,$\leftrightarrow$\,meningioma) $\Rightarrow$ a real data property, not a bug.
+  \item \textbf{Metrics} --- accuracy, precision, recall, F1, \textbf{per-class} report, and confusion matrix (accuracy alone hides per-class failure).
+  \item \textbf{Reproducibility} --- fixed seeds, public dataset, one-command pipeline.
+\end{enumerate}
+
+\begin{keybox}
+\textbf{Honesty point (graders like this):} our test accuracies (84--86\%) sit a few points below
+the 90\%+ literature figures \emph{because we use the 1{,}600-image subset}, not the full $\sim$7k set.
+We state this limitation and the fix (full data / GPU).
+\end{keybox}
+
+% ====================================================================
+\section{Results, clearly stated (criterion 4)}
+\textbf{Test set: 240 images (60 per class). Weighted metrics:}
+
+\begin{center}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+\midrule
+\textbf{ResNet50 (best)} & \textbf{85.83\%} & 86.52\% & 85.83\% & 85.66\% \\
+VGG16          & 84.58\% & 86.08\% & 84.58\% & 84.53\% \\
+EfficientNetB0 & 83.75\% & 84.47\% & 83.75\% & 83.30\% \\
+Custom CNN     & 71.67\% & 70.03\% & 71.67\% & 69.82\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent\textbf{Per-class (ResNet50):} notumor F1 $\approx$ 0.96, pituitary 0.95, meningioma 0.78, glioma 0.74.
+
+\begin{keybox}
+\textbf{Reading the confusion matrix:}
+rows = true class, columns = predicted; the \textbf{diagonal} = correct, each row sums to 60.
+The off-diagonal hot-spot is \textbf{glioma\,$\leftrightarrow$\,meningioma} (shared texture/intensity --- the clinically hard pair).
+\code{notumor} and \code{pituitary} are near-perfect.
+\end{keybox}
+
+\textbf{Conclusions:}
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+  \item Transfer learning beats the from-scratch CNN by $\sim$13--14 points --- ImageNet features help on small data.
+  \item \textbf{ResNet50 wins}, matching the Proposal (Gap~1: modern residual backbone over heavy VGG / from-scratch).
+  \item EfficientNetB0 is nearly as good with far fewer parameters (4.8M vs 24.8M) $\Rightarrow$ best for deployment.
+\end{enumerate}
+
+\textbf{Figures to show} (real outputs in \texttt{reports/}, \emph{not} AI generated):
+\texttt{confusion\_matrix\_resnet50.png}, \texttt{model\_comparison.png}, \texttt{overall\_metrics\_comparison.png},
+\texttt{per\_class\_f1\_comparison.png}, \texttt{training\_curves\_resnet50.png}.
+
+% ====================================================================
+\section{Suggested member ownership (criterion 2)}
+Everyone must know the \emph{whole} pipeline, but each leads a part for depth. Practise by \textbf{swapping}
+(member~2 explains member~1's code, etc.).
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}c l X@{}}
+\toprule
+\textbf{Member} & \textbf{Leads} & \textbf{Must still explain} \\
+\midrule
+1 & Data: \code{download.py} + \code{preprocess.py} (esp.\ skull stripping) & everything \\
+2 & Models: \code{models.py} (Custom CNN + transfer heads) & everything \\
+3 & Training/validation: \code{train.py} + \code{tune.py} (2-stage, callbacks) & everything \\
+4 & Evaluation + UI: \code{evaluate.py}, \code{app.py}, results & everything \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ====================================================================
+\section{Anticipated questions \& answers (drill these)}
+
+\subsection*{Image processing}
+\begin{qabox}
+\Q{Why median AND Gaussian filters?}
+\A{Gaussian kills high-frequency/Gaussian noise but blurs edges; median kills impulse noise and \emph{keeps} edges. Together: clean image, sharp tumor boundaries.}
+\end{qabox}
+\begin{qabox}
+\Q{Why Otsu, not a fixed threshold, for skull stripping?}
+\A{Otsu adapts per image (different scanners/brightness); a fixed value fails on darker/brighter scans.}
+\end{qabox}
+\begin{qabox}
+\Q{Why pad to square before resizing?}
+\A{Resizing a non-square crop to $224\times224$ would stretch the brain and distort tumor shape.}
+\end{qabox}
+
+\subsection*{Modelling}
+\begin{qabox}
+\Q{What is transfer learning?}
+\A{Reuse ImageNet-pretrained conv features, replace the classifier head, train on our 4 classes --- works with little data.}
+\end{qabox}
+\begin{qabox}
+\Q{Why freeze then fine-tune (2 stages)?}
+\A{Unfreezing immediately lets large random-head gradients destroy pretrained weights. Train the head first, then fine-tune gently at lr 1e-5.}
+\end{qabox}
+\begin{qabox}
+\Q{Why keep BatchNorm frozen during fine-tuning?}
+\A{BN holds ImageNet mean/variance; updating it on a tiny batch destabilises training.}
+\end{qabox}
+\begin{qabox}
+\Q{Custom CNN: Flatten vs Global Average Pooling?}
+\A{GAP discards spatial location; pituitary/meningioma depend on location, so we Flatten (after a $1\times1$ conv to limit parameters).}
+\end{qabox}
+
+\subsection*{Training / validation}
+\begin{qabox}
+\Q{Difference between validation and test set?}
+\A{Validation tunes/monitors (early stopping, LR, HP search); the test set is touched \emph{once} for the final unbiased number.}
+\end{qabox}
+\begin{qabox}
+\Q{What does early stopping do?}
+\A{Stops when val\_loss stops improving for \code{patience} epochs and \emph{restores the best weights} --- prevents overfitting.}
+\end{qabox}
+\begin{qabox}
+\Q{What is label smoothing?}
+\A{Soft targets (0.9 instead of 1.0) --- the model is less over-confident and generalises better.}
+\end{qabox}
+\begin{qabox}
+\Q{Is there data leakage?}
+\A{No --- the split is on raw images before any model sees them; the test set is never used for tuning.}
+\end{qabox}
+
+\subsection*{Results}
+\begin{qabox}
+\Q{Why not 90\%+ like the papers?}
+\A{We use the 1{,}600-image subset; the full $\sim$7k dataset + GPU is expected to exceed 90\%.}
+\end{qabox}
+\begin{qabox}
+\Q{Which class is hardest and why?}
+\A{Glioma vs meningioma --- overlapping appearance; visible as the off-diagonal in every confusion matrix.}
+\end{qabox}
+\begin{qabox}
+\Q{Why report F1, not just accuracy?}
+\A{Accuracy hides per-class failure; F1 balances precision and recall per class.}
+\end{qabox}
+
+\subsection*{``Gotcha'' checks}
+\begin{qabox}
+\Q{Where are the class labels ordered?}
+\A{A fixed \code{CLASS\_NAMES} list shared by train/evaluate/app --- they must match or predictions are mislabelled.}
+\end{qabox}
+\begin{qabox}
+\Q{Why divide by 255 then multiply by 255 again for transfer models?}
+\A{We normalise to $[0,1]$ for a uniform pipeline, then each backbone's \code{preprocess\_input} wants $[0,255]$ and applies its own scaling --- so we convert back.}
+\end{qabox}
+
+% ====================================================================
+\section{Demo \& slide checklist (criterion 5)}
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{Make slides yourself.} Use \emph{your own} plots from \code{reports/} (genuine experimental outputs, not AI art) and screenshots of the running app.
+  \item \textbf{Live demo:} \code{streamlit run src/app.py} $\rightarrow$ upload one test image per class $\rightarrow$ show preprocessing stages + prediction + confidence. Keep a screen-recording as backup.
+  \item \textbf{Slide order:} Problem $\rightarrow$ Objectives $\rightarrow$ Dataset $\rightarrow$ Preprocessing (skull-strip before/after) $\rightarrow$ Augmentation $\rightarrow$ Models (table) $\rightarrow$ Training/validation $\rightarrow$ Results + confusion matrix $\rightarrow$ Best model \& conclusion $\rightarrow$ Limitations \& future work $\rightarrow$ Live demo.
+  \item Keep a one-line ``who built what'' slide for criterion~2.
+\end{itemize}
+
+% ====================================================================
+\section{Be honest about these (raise before being asked)}
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item The repo ships a \textbf{subset} (1{,}600 images); README \S4 states this.
+  \item Trained weights are \emph{not} committed (\code{models/} is gitignored) --- train to reproduce; the committed \code{reports/} come from a prior full run (internal consistency verified).
+  \item Hyperparameters were chosen \textbf{manually}; \code{src/tune.py} adds a proper automated search for the HPC.
+\end{itemize}
+
+\vspace{1em}
+\begin{center}\itshape Good luck --- know the ``why'', not just the ``what''.\end{center}
+
+\end{document}

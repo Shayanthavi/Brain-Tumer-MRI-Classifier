@@ -1,0 +1,14 @@
+# Streamlit configuration for the Brain Tumor Classifier demo apps.
+#
+# Why fileWatcherType = "none":
+#   Importing TensorFlow pulls in thousands of files. Streamlit's default
+#   watcher (polling here, because `watchdog` isn't installed) tries to scan
+#   all of them on every rerun, which can make the app appear to HANG on the
+#   first prediction (the spinner never clears). A demo doesn't need
+#   hot-reload, so we turn the watcher off entirely — this makes classification
+#   respond immediately.
+[server]
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
